@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Guess the picture</title>
+<style>
+  * { box-sizing: border-box; user-select: none; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #1a2634;
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 16px;
+    color: #fff;
+  }
+  .container {
+    max-width: 800px;
+    width: 100%;
+    background: #2d3e50;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  }
+  h1 {
+    text-align: center;
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin: 0 0 16px;
+    color: #b3d9ff;
+    font-size: 1.5rem;
+  }
+  /* ЭКРАН ВЫБОРА НАБОРА */
+  .set-screen { display: none; }
+  .set-screen.active { display: block; }
+  .upload-screen { display: none; }
+  .upload-screen.active { display: block; }
+  
+  .set-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+  .set-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #3a5068;
+    border: 2px solid #4a6a82;
+    border-radius: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: 0.2s;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: left;
+  }
+  .set-item:hover { background: #4a6a82; border-color: #6a9fc0; }
+  .set-item .arrow { color: #8ab3d6; font-size: 1.2rem; }
+  .set-empty {
+    text-align: center;
+    color: #6a7a8e;
+    font-size: 0.9rem;
+    padding: 20px;
+  }
+  /* ЭКРАН ЗАГРУЗКИ */
+  .upload-btn {
+    display: block;
+    width: 100%;
+    background: #4a7a9c;
+    border: none;
+    border-radius: 16px;
+    padding: 16px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-bottom: 16px;
+    border: 2px dashed #6a9fc0;
+  }
+  .upload-btn:hover { background: #5a8aaa; }
+  .upload-btn.hidden { display: none; }
+  
+  .image-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+  .image-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #3a5068;
+    border-radius: 12px;
+    padding: 8px;
+  }
+  .image-item .preview {
+    width: 70px;
+    height: 70px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+    background-color: #1a2634;
+  }
+  .image-item .info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .image-item .name {
+    font-size: 0.75rem;
+    color: #8ab3d6;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .image-item input {
+    background: #2d3e50;
+    border: 1px solid #4a6a82;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #fff;
+    font-size: 0.9rem;
+    outline: none;
+    width: 100%;
+  }
+  .image-item input:focus { border-color: #6a9fc0; }
+  .image-item .remove {
+    background: transparent;
+    border: none;
+    color: #b03a3a;
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+  .image-item .remove:hover { color: #ff5555; }
+  
+  .action-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    flex: 1;
+    background: #4a7a9c;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 20px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 1rem;
+    min-width: 120px;
+  }
+  .btn:hover { background: #5a8aaa; }
+  .btn:active { transform: scale(0.97); }
+  .btn.secondary { background: #3a5068; border: 1px solid #4a6a82; }
+  .btn.secondary:hover { background: #4a6a82; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  
+  /* ИГРОВОЙ ЭКРАН */
+  .game-screen { display: none; }
+  .game-screen.active { display: block; }
+  .upload-screen.hidden { display: none; }
+  
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #3a5068;
+    border-radius: 12px;
+    padding: 8px 14px;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    color: #8ab3d6;
+  }
+  .top-bar .counter { color: #b3d9ff; font-weight: 600; }
+  .top-bar .progress { color: #ffd966; }
+  
+  .puzzle-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #1a2634;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    max-height: 60vh;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .puzzle-grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(12, 1fr);
+  }
+  .cell {
+    position: relative;
+    background-repeat: no-repeat;
+  }
+  .cell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #2d3e50;
+    transition: opacity 0.15s;
+  }
+  .cell.revealed::before { opacity: 0; }
+  
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  
+  .answer-row {
+    display: flex;
+    gap: 10px;
+  }
+  .answer-row input {
+    flex: 1;
+    background: #3a5068;
+    border: 2px solid #4a6a82;
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+    min-width: 0;
+  }
+  .answer-row input:focus { border-color: #6a9fc0; }
+  .answer-row input:disabled { opacity: 0.5; }
+  
+  .message {
+    text-align: center;
+    padding: 10px;
+    font-size: 0.95rem;
+    min-height: 20px;
+    color: #8ab3d6;
+    margin-top: 8px;
+  }
+  .message.correct { color: #4ade80; font-weight: 600; }
+  .message.wrong { color: #ff6b6b; font-weight: 600; }
+  
+  .reveal-answer {
+    text-align: center;
+    padding: 14px;
+    background: #3a5068;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    display: none;
+  }
+  .reveal-answer.active { display: block; }
+  .reveal-answer .answer-text {
+    font-size: 1.3rem;
+    color: #ffd966;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  
+  /* ИТОГОВЫЙ ЭКРАН */
+  .result-screen { display: none; text-align: center; padding: 20px 0; }
+  .result-screen.active { display: block; }
+  .result-screen .trophy { font-size: 4rem; margin-bottom: 10px; }
+  .result-screen h2 { font-size: 2rem; margin: 10px 0; color: #ffd966; }
+  .result-screen p { font-size: 1.2rem; color: #cde0f0; margin-bottom: 20px; }
+  
+  @media (max-width: 500px) {
+    .container { padding: 12px; border-radius: 16px; }
+    h1 { font-size: 1.2rem; }
+    .btn { font-size: 0.9rem; padding: 10px 14px; }
+    .answer-row input { padding: 10px; font-size: 0.9rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🖼 What's this?</h1>
+  <!-- ЭКРАН ВЫБОРА НАБОРА -->
+  <div class="set-screen" id="setScreen">
+    <p style="text-align:center;color:#8ab3d6;margin-bottom:14px;">
+      Choose a set or create your own
+    </p>
+    <div class="set-list" id="setList"></div>
+    <div class="action-row" style="margin-top:12px;">
+      <button class="btn secondary" id="importBtn">📥 Import from file</button>
+      <button class="btn" id="createSetBtn">➕ Create new set</button>
+    </div>
+    <input type="file" id="importInput" accept=".json,application/json" style="display:none">
+  </div>
+  
+  <!-- ЭКРАН ЗАГРУЗКИ -->
+  <div class="upload-screen" id="uploadScreen">
+    <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+    <button class="upload-btn" id="uploadBtn">📂 Выбрать картинки (до 9)</button>
+    
+    <div class="image-list" id="imageList"></div>
+    
+        <div class="action-row" id="actionRow" style="display:none">
+      <button class="btn secondary" id="shuffleBtn">🔀 Shuffle</button>
+      <button class="btn secondary" id="exportBtn">💾 Export set</button>
+      <button class="btn" id="startBtn">▶ Start game</button>
+    </div>
+    <div class="action-row" style="margin-top:8px;">
+      <button class="btn secondary" id="backBtn">← Back</button>
+    </div>
+</div>
+  
+  <!-- ИГРОВОЙ ЭКРАН -->
+  <div class="game-screen" id="gameScreen">
+    <div class="top-bar">
+      <span class="progress" id="progressDisplay">Picture 1 / 9</span>
+          </div>
+    
+    <div class="puzzle-wrap">
+      <div class="puzzle-grid" id="puzzleGrid"></div>
+    </div>
+    
+    <div class="controls">
+      <button class="btn secondary" id="toggleBtn">⏸ Pause</button>
+    </div>
+    
+    <div class="reveal-answer" id="revealAnswer">
+      <div class="answer-text" id="answerText"></div>
+      <button class="btn" id="nextRoundBtn">Next round →</button>
+    </div>
+    
+    <div class="answer-row" id="answerRow">
+      <input type="text" id="answerInput" placeholder="What is it?" autocomplete="off">
+      <button class="btn" id="checkBtn" style="flex: 0 0 auto;">Check</button>
+    </div>
+    
+    <div class="message" id="message"></div>
+  </div>
+  
+  <!-- ИТОГОВЫЙ ЭКРАН -->
+  <div class="result-screen" id="resultScreen">
+    <div class="trophy">🏆</div>
+    <h2>End of round!</h2>
+    <p id="resultText">Угадано 0 из 0</p>
+    <button class="btn" id="playAgainBtn" style="max-width: 300px; margin: 0 auto;">New game</button>
+  </div>
+</div>
+
+<script>
+// =============================================================
+// НАСТРОЙКИ
+// =============================================================
+const MAX_IMAGES = 9;
+const GRID_SIZE = 12;
+const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
+const REVEAL_INTERVAL = 150; // мс между открытием клеток
+
+// =============================================================
+// СОСТОЯНИЕ
+// =============================================================
+let images = [];
+let currentIndex = 0;
+let guessedCount = 0;
+let cellOrder = [];
+let revealedCount = 0;
+let intervalId = null;
+let isPaused = false;
+let isAnswerLocked = false;
+
+// DOM
+const uploadScreen = document.getElementById('uploadScreen');
+const gameScreen = document.getElementById('gameScreen');
+const resultScreen = document.getElementById('resultScreen');
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const imageList = document.getElementById('imageList');
+const actionRow = document.getElementById('actionRow');
+const shuffleBtn = document.getElementById('shuffleBtn');
+const startBtn = document.getElementById('startBtn');
+const progressDisplay = document.getElementById('progressDisplay');
+const puzzleGrid = document.getElementById('puzzleGrid');
+const toggleBtn = document.getElementById('toggleBtn');
+const revealAnswer = document.getElementById('revealAnswer');
+const answerText = document.getElementById('answerText');
+const nextRoundBtn = document.getElementById('nextRoundBtn');
+const answerRow = document.getElementById('answerRow');
+const answerInput = document.getElementById('answerInput');
+const checkBtn = document.getElementById('checkBtn');
+const message = document.getElementById('message');
+const resultText = document.getElementById('resultText');
+const playAgainBtn = document.getElementById('playAgainBtn');
+
+// =============================================================
+// ЭКРАН ВЫБОРА НАБОРА
+// =============================================================
+const setScreen = document.getElementById('setScreen');
+const setList = document.getElementById('setList');
+const importBtn = document.getElementById('importBtn');
+const importInput = document.getElementById('importInput');
+const createSetBtn = document.getElementById('createSetBtn');
+const backBtn = document.getElementById('backBtn');
+const exportBtn = document.getElementById('exportBtn');
+const MANIFEST_URL = 'sets/manifest.json';
+
+function showSetScreen() {
+  setScreen.classList.add('active');
+  uploadScreen.classList.remove('active');
+  gameScreen.classList.remove('active');
+  resultScreen.classList.remove('active');
+  loadManifest();
+}
+
+function showUploadScreen() {
+  setScreen.classList.remove('active');
+  uploadScreen.classList.add('active');
+  gameScreen.classList.remove('active');
+  resultScreen.classList.remove('active');
+  renderImageList();
+}
+
+async function loadManifest() {
+  setList.innerHTML = '';
+  try {
+    const res = await fetch(MANIFEST_URL);
+    if (!res.ok) throw new Error('no manifest');
+    const data = await res.json();
+    if (!data.sets || data.sets.length === 0) {
+      setList.innerHTML = '<div class="set-empty">No built-in sets yet.<br>Create one or import from file.</div>';
+      return;
+    }
+    data.sets.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'set-item';
+      btn.innerHTML = `<span>${escapeHtml(s.name)}</span><span class="arrow">▶</span>`;
+      btn.addEventListener('click', () => loadBuiltInSet(s.file));
+      setList.appendChild(btn);
+    });
+  } catch (e) {
+    setList.innerHTML = '<div class="set-empty">Built-in sets are only available online.<br>Import a file or create your own.</div>';
+  }
+}
+
+async function loadBuiltInSet(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('failed');
+    const data = await res.json();
+    applySetData(data);
+  } catch (e) {
+    alert('Could not load this set.');
+  }
+}
+
+function applySetData(data) {
+  if (!data.images || !Array.isArray(data.images)) {
+    alert('Invalid set file.');
+    return;
+  }
+  // Очистить старые
+  images.forEach(img => URL.revokeObjectURL(img.url));
+  images = [];
+  data.images.forEach((item, i) => {
+    images.push({
+      file: null,
+      url: item.data,        // уже data:image/...
+      name: `image_${i + 1}`,
+      answer: item.answer || ''
+    });
+  });
+  showUploadScreen();
+}
+
+createSetBtn.addEventListener('click', showUploadScreen);
+backBtn.addEventListener('click', showSetScreen);
+
+// =============================================================
+// ИМПОРТ ИЗ ФАЙЛА
+// =============================================================
+importBtn.addEventListener('click', () => importInput.click());
+importInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    applySetData(data);
+  } catch (err) {
+    alert('Could not read this file.');
+  }
+  importInput.value = '';
+});
+
+// =============================================================
+// ЭКСПОРТ НАБОРА (со сжатием картинок)
+// =============================================================
+exportBtn.addEventListener('click', async () => {
+  if (images.length === 0) return;
+  const empty = images.findIndex(img => img.answer.trim() === '');
+  if (empty !== -1) {
+    alert(`Enter answer for image #${empty + 1} before exporting.`);
+    return;
+  }
+  
+  exportBtn.textContent = '⏳ Exporting...';
+  exportBtn.disabled = true;
+  
+  const out = {
+    version: 1,
+    name: 'my-set',
+    images: []
+  };
+  
+  for (const img of images) {
+    const dataUrl = await compressToDataURL(img.url, 1200, 0.85);
+    out.images.push({ data: dataUrl, answer: img.answer });
+  }
+  
+  const blob = new Blob([JSON.stringify(out)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${out.name}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  exportBtn.textContent = '💾 Export set';
+  exportBtn.disabled = false;
+});
+
+function compressToDataURL(src, maxSide, quality) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+      const ratio = Math.min(1, maxSide / Math.max(w, h));
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+}
+// =============================================================
+// ЗАГРУЗКА КАРТИНОК
+// =============================================================
+uploadBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', (e) => {
+  const files = Array.from(e.target.files);
+  const free = MAX_IMAGES - images.length;
+  const toAdd = files.slice(0, free);
+  
+  toAdd.forEach(file => {
+    images.push({
+      file: file,
+      url: URL.createObjectURL(file),
+      name: file.name,
+      answer: ''
+    });
+  });
+  
+  fileInput.value = '';
+  renderImageList();
+});
+
+function renderImageList() {
+  imageList.innerHTML = '';
+
+    if (images.length >= MAX_IMAGES) {
+    uploadBtn.classList.add('hidden');
+  } else {
+    uploadBtn.classList.remove('hidden');
+  }
+  uploadBtn.textContent = `📂 Add more (${images.length} / ${MAX_IMAGES})`;
+  if (images.length >= 1) {
+    actionRow.style.display = 'flex';
+  } else {
+    actionRow.style.display = 'none';
+  }
+  images.forEach((img, i) => {
+    const item = document.createElement('div');
+    item.className = 'image-item';
+    item.innerHTML = `
+      <div class="preview" style="background-image:url('${img.url}')"></div>
+      <div class="info">
+        <div class="name">${escapeHtml(img.name)}</div>
+        <input type="text" placeholder="Введите ответ..." value="${escapeHtml(img.answer)}" data-index="${i}">
+      </div>
+      <button class="remove" data-index="${i}" title="Удалить">✕</button>
+    `;
+    imageList.appendChild(item);
+  });
+  
+  imageList.querySelectorAll('input[data-index]').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const idx = parseInt(e.target.dataset.index);
+      images[idx].answer = e.target.value;
+    });
+  });
+  
+  imageList.querySelectorAll('.remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.dataset.index);
+      URL.revokeObjectURL(images[idx].url);
+      images.splice(idx, 1);
+      renderImageList();
+    });
+  });
+  
+  }
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// =============================================================
+// ПЕРЕМЕШИВАНИЕ КАРТИНОК
+// =============================================================
+shuffleBtn.addEventListener('click', () => {
+  for (let i = images.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [images[i], images[j]] = [images[j], images[i]];
+  }
+  renderImageList();
+});
+
+// =============================================================
+// СТАРТ ИГРЫ
+// =============================================================
+startBtn.addEventListener('click', () => {
+  const empty = images.findIndex(img => img.answer.trim() === '');
+  if (empty !== -1) {
+    alert(`Введите ответ для картинки №${empty + 1}`);
+    return;
+  }
+  
+  currentIndex = 0;
+  guessedCount = 0;
+  
+  uploadScreen.classList.add('hidden');
+  gameScreen.classList.add('active');
+  resultScreen.classList.remove('active');
+  
+  loadImage(0);
+});
+
+// =============================================================
+// ЗАГРУЗКА КАРТИНКИ
+// =============================================================
+function loadImage(index) {
+  currentIndex = index;
+  const img = images[index];
+
+  progressDisplay.textContent = `Picture ${index + 1} / ${images.length}`;
+
+  // Сброс UI
+  message.textContent = '';
+  message.className = 'message';
+  answerInput.value = '';
+  answerInput.disabled = false;
+  answerInput.focus();
+  checkBtn.disabled = false;
+  revealAnswer.classList.remove('active');
+  answerRow.style.display = 'flex';
+  isAnswerLocked = false;
+  isPaused = false;
+  toggleBtn.textContent = '⏸ Stop';
+  toggleBtn.disabled = false;
+
+  // Сначала узнаём пропорции картинки, потом рисуем поле
+  const probe = new Image();
+  probe.onload = () => {
+    const w = probe.naturalWidth;
+    const h = probe.naturalHeight;
+    const wrap = document.querySelector('.puzzle-wrap');
+    wrap.style.aspectRatio = `${w} / ${h}`;
+    wrap.style.width = `min(100%, calc(60vh * ${w} / ${h}))`;
+
+    // Рисуем сетку
+    puzzleGrid.innerHTML = '';
+    revealedCount = 0;
+
+    // Случайный порядок клеток
+    cellOrder = Array.from({ length: TOTAL_CELLS }, (_, i) => i);
+    for (let i = cellOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cellOrder[i], cellOrder[j]] = [cellOrder[j], cellOrder[i]];
+    }
+
+    // Создаём клетки
+    const imgUrl = img.url;
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.style.backgroundImage = `url('${imgUrl}')`;
+        cell.style.backgroundSize = `${GRID_SIZE * 100}% ${GRID_SIZE * 100}%`;
+        const posX = (c / (GRID_SIZE - 1)) * 100;
+        const posY = (r / (GRID_SIZE - 1)) * 100;
+        cell.style.backgroundPosition = `${posX}% ${posY}%`;
+        cell.dataset.index = r * GRID_SIZE + c;
+        puzzleGrid.appendChild(cell);
+      }
+    }
+
+    startReveal();
+  };
+probe.onerror = () => {
+  console.warn('Не удалось загрузить картинку');
+  startReveal();
+};
+  probe.src = img.url;
+}
+
+function startReveal() {
+  if (intervalId) clearInterval(intervalId);
+  
+  intervalId = setInterval(() => {
+    if (revealedCount >= TOTAL_CELLS) {
+      clearInterval(intervalId);
+      intervalId = null;
+      onAllRevealed();
+      return;
+    }
+    
+    const cellIdx = cellOrder[revealedCount];
+    const cell = puzzleGrid.querySelector(`.cell[data-index="${cellIdx}"]`);
+    if (cell) cell.classList.add('revealed');
+    revealedCount++;
+        
+    if (revealedCount >= TOTAL_CELLS) {
+      clearInterval(intervalId);
+      intervalId = null;
+      onAllRevealed();
+    }
+  }, REVEAL_INTERVAL);
+}
+
+
+
+function onAllRevealed() {
+  toggleBtn.disabled = true;
+  if (!isAnswerLocked) {
+    showCorrectAnswer();
+  }
+}
+
+// =============================================================
+// СТОП / ПРОДОЛЖИТЬ
+// =============================================================
+toggleBtn.addEventListener('click', () => {
+  if (isAnswerLocked) return;
+  
+  if (isPaused) {
+    isPaused = false;
+    toggleBtn.textContent = '⏸ Pause';
+    if (revealedCount < TOTAL_CELLS) startReveal();
+  } else {
+    isPaused = true;
+    toggleBtn.textContent = '▶ Continue';
+    if (intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
+    answerInput.focus();
+  }
+});
+
+// =============================================================
+// ПРОВЕРКА ОТВЕТА
+// =============================================================
+checkBtn.addEventListener('click', checkAnswer);
+answerInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkAnswer();
+});
+
+function checkAnswer() {
+  if (isAnswerLocked) return;
+  const userAnswer = answerInput.value.trim();
+  if (!userAnswer) return;
+  
+  const correct = images[currentIndex].answer;
+  if (normalize(userAnswer) === normalize(correct)) {
+    isAnswerLocked = true;
+    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    
+    message.textContent = '✅ Great!';
+    message.className = 'message correct';
+    answerInput.disabled = true;
+    checkBtn.disabled = true;
+    toggleBtn.disabled = true;
+    
+    // Открываем всё для наглядности
+    puzzleGrid.querySelectorAll('.cell').forEach(c => c.classList.add('revealed'));
+    revealedCount = TOTAL_CELLS;
+        
+    guessedCount++;
+    
+    setTimeout(nextImage, 1200);
+  } else {
+    message.textContent = '❌ Try again';
+    message.className = 'message wrong';
+    answerInput.select();
+  }
+}
+
+function normalize(str) {
+  return str.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function showCorrectAnswer() {
+  isAnswerLocked = true;
+  answerInput.disabled = true;
+  checkBtn.disabled = true;
+  toggleBtn.disabled = true;
+  
+  answerText.textContent = `Answer: ${images[currentIndex].answer}`;
+  revealAnswer.classList.add('active');
+  answerRow.style.display = 'none';
+}
+
+nextRoundBtn.addEventListener('click', nextImage);
+
+function nextImage() {
+  if (intervalId) { clearInterval(intervalId); intervalId = null; }
+  
+  if (currentIndex + 1 < images.length) {
+    loadImage(currentIndex + 1);
+  } else {
+    showResults();
+  }
+}
+
+// =============================================================
+// ИТОГИ
+// =============================================================
+function showResults() {
+  gameScreen.classList.remove('active');
+  resultScreen.classList.add('active');
+  resultText.textContent = `${guessedCount} out of ${images.length}`;
+}
+
+playAgainBtn.addEventListener('click', showSetScreen);
+// Показать стартовый экран при загрузке
+showSetScreen();
+</script>
+</body>
+</html>

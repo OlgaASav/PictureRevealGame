@@ -1,3 +1,8 @@
 {
-  "sets": []
+  "sets": [
+    {"name": "Animals Acad Stars 2", file: "sets/animalsAcs2 (2).json"},
+    {"name": "Toys GM5 1", file: "sets/TOYSGMF1U2.json"},
+    {"name": "Transport GWB1+", file: "sets/TransportGWb1plusunit2.json"},
+    {"name": "Activities Ac Stars 2", file: "sets/activitiesACS2.json"}
+      ]
 }
